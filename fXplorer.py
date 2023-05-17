@@ -1,22 +1,38 @@
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout
 from collections import OrderedDict
 from time import sleep
 import sys
+import subprocess
 import os
 
 class PPushButton(QPushButton):
-    def __init__(self, parent, id, path:str):
+    """
+    A customized PyQt QPushButton class that accepts a FileExplorer object, a button id, and a directory path as arguments.
+
+    Args:
+    parent: An instance of the FileExplorer class that is used to access files and directories.
+    button_id (int or str): A unique identifier for the button.
+    dir_path (str): The directory path that the button will be associated with.
+
+    Attributes:
+    button_id (int or str): A unique identifier for the button.
+
+    Methods:
+    No additional methods attached to this class other than inherited QPushButton methods. However, the properties above can be accessed publicly by using the appropriate function calls within the PPushButton object.
+
+    """
+    def __init__(self, parent, id, item:str):
         super().__init__(parent)
         self.id = id
-        self.clicked.connect(lambda: self.init_page(parent, path))
-        # print(parent)
+        if item.is_dir:
+            self.clicked.connect(lambda: parent.initialize_page(item.path))
+        else:
+            self.clicked.connect(lambda: subprocess.Popen(item.path, shell=True))
 
 
-    def init_page(self, parent, path):
-        parent.initialize_page(path)
 
 class FileExplorer(QMainWindow):
+    
     def __init__(self):
         super().__init__()
         print("Welcome to MPXplorer")
@@ -42,26 +58,27 @@ class FileExplorer(QMainWindow):
         form_layout = QFormLayout()
         group_box = QGroupBox(default_dir)
 
-        
+
+        exit_btn = QPushButton("Exit", self)    # Add exit button.
+        exit_btn.clicked.connect(sys.exit)
+        form_layout.addRow(exit_btn)
 
         cnt = 0
-        for itm in get_data(default_dir).values():
-            btn = PPushButton(self, id=cnt, path=itm.path)
+        for itm in get_data(default_dir).values():    # iterates values of Item objects in the specified directory and makes button and label for each object.
+            btn = PPushButton(self, id=cnt, item=itm)    # Make object of PPushButton customized class.
             lbl = QLabel(itm.name, self)
             btn.setText(itm.name)
             btn.setFixedSize(800, 70)
             lbl.setFixedSize(200, 20)
             
+            # Stores button and label data:
             self.icons_btn.append(btn)
             self.icons_lbl.append(lbl)
-            form_layout.addRow(self.icons_lbl[cnt], self.icons_btn[cnt])
-            self.lines.append(QLabel('_______________________________________________________________________________________________________________________________________________'))
+            form_layout.addRow(self.icons_lbl[cnt], self.icons_btn[cnt])    # Add a row to form_layout.
+            self.lines.append(QLabel('_______________________________________________________________________________________________________________________________________________'))    # Draws a vertical line.
             form_layout.addRow(self.lines[cnt])
             cnt += 1
             
-        exit_btn = QPushButton("Exit", self)
-        exit_btn.clicked.connect(self.clear_screen)
-        form_layout.addRow(exit_btn)
 
         group_box.setLayout(form_layout)
         scroll = QScrollArea()
@@ -77,7 +94,7 @@ class FileExplorer(QMainWindow):
         
         self.show()
 
-        
+
     def clear_screen(self):
         for itm in self.icons_lbl:
             itm.clear()
@@ -97,7 +114,7 @@ def get_data(directory_path = "C:\\Users\\Dell\\Desktop\\tesktop"):
     dir_contents_ls = os.scandir(directory_path)
     dir_contents_dict = OrderedDict()
     for itm in dir_contents_ls:
-        dir_contents_dict[itm.name] = Item(itm.name, itm.path, itm.is_dir)
+        dir_contents_dict[itm.name] = Item(itm.name, itm.path, itm.is_dir())
     return dir_contents_dict
 
 
