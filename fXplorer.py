@@ -1,47 +1,88 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox
+from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout
 from collections import OrderedDict
+from time import sleep
 import sys
 import os
+
+class PPushButton(QPushButton):
+    def __init__(self, parent, id, path:str):
+        super().__init__(parent)
+        self.id = id
+        self.clicked.connect(lambda: self.init_page(parent, path))
+        # print(parent)
+
+
+    def init_page(self, parent, path):
+        parent.initialize_page(path)
 
 class FileExplorer(QMainWindow):
     def __init__(self):
         super().__init__()
         print("Welcome to MPXplorer")
-
-        default_dir = "C:\\Users\\Dell\\Desktop\\tesktop"
-        self.setGeometry(460, 240, 710, 500)
+        self.icons_btn = []
+        self.icons_lbl = []
+        self.lines = []
+        self.paths = []
+        self.setGeometry(500, 200, 1050, 700)
         self.setWindowTitle("MPXplorer")
+        self.initialize_page()
         
+
+    def initialize_page(self, default_dir = "C:\\Users\\Dell\\Desktop\\tesktop"):
+        self.icons_btn = []
+        self.icons_lbl = []
+        self.lines = []
+        self.paths = []
+        self.clear_screen()
+        
+        wid = QWidget(self)
+        self.setCentralWidget(wid)
+
         form_layout = QFormLayout()
-        group_box = QGroupBox('GroupBox')
+        group_box = QGroupBox(default_dir)
 
         
-        btn_y_idx = 0
-        btn_x_idx = 0
-        lbl_y_idx = 1
-        lbl_x_idx = 0
 
-        icons_btn = []
-        icons_lbl = []
-        for itm in get_data(default_dir).values():  # this loop makes buttons with text value of directory name.
-            btn = QtWidgets.QPushButton(self)
+        cnt = 0
+        for itm in get_data(default_dir).values():
+            btn = PPushButton(self, id=cnt, path=itm.path)
             lbl = QLabel(itm.name, self)
-            lbl.move(lbl_x_idx * 150, lbl_y_idx * 150 - 35)
             btn.setText(itm.name)
-            btn.move(btn_x_idx * 150, btn_y_idx * 150 + 20)
-            btn.setFixedSize(90, 100)
-            icons_btn.append(btn)
-            icons_lbl.append(lbl)
-            btn_x_idx += 1
-            lbl_x_idx += 1
-            if btn_x_idx % 5 == 0:
-                btn_y_idx += 1
-                btn_x_idx %= 5
-            if lbl_x_idx % 5 == 0:
-                lbl_y_idx += 1
-                lbl_x_idx %= 5
+            btn.setFixedSize(800, 70)
+            lbl.setFixedSize(200, 20)
+            
+            self.icons_btn.append(btn)
+            self.icons_lbl.append(lbl)
+            form_layout.addRow(self.icons_lbl[cnt], self.icons_btn[cnt])
+            self.lines.append(QLabel('_______________________________________________________________________________________________________________________________________________'))
+            form_layout.addRow(self.lines[cnt])
+            cnt += 1
+            
+        exit_btn = QPushButton("Exit", self)
+        exit_btn.clicked.connect(self.clear_screen)
+        form_layout.addRow(exit_btn)
+
+        group_box.setLayout(form_layout)
+        scroll = QScrollArea()
+        scroll.setWidget(group_box)
+        scroll.setWidgetResizable(True)
+        scroll.setFixedHeight(700)
+        scroll.setFixedWidth(1060)
+
+        layout = QVBoxLayout()
+        layout.addWidget(scroll)
+
+        wid.setLayout(layout)
+        
         self.show()
+
+        
+    def clear_screen(self):
+        for itm in self.icons_lbl:
+            itm.clear()
+        for itm in self.lines:
+            itm.clear()
 
 
 
