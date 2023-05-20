@@ -5,6 +5,7 @@ import sys
 import subprocess
 import os
 
+
 class PPushButton(QPushButton):
     """
     A customized PyQt QPushButton class that accepts a FileExplorer object, a button id, and a directory path as arguments.
@@ -59,21 +60,46 @@ def rename_dir(parent, item, new_name):
     except:
         parent.initialize_page(msg='RF')
 
-
 def rename_file(parent, item, new_name):
-    # try:
+    try:
         path = item.path
         current_name = item.name
         path2 = path[:-1 * len(item.name)]
         print(path)
-        # os.chdir(path)
-
         os.rename(path, path2 + new_name)
         parent.initialize_page(msg='RT')
-    # except:
-        # parent.initialize_page(msg='RF')
+    except:
+        parent.initialize_page(msg='RF')
 
+class DPushButton(QPushButton):
+    """
+    A customized PyQt QPushButton class that accepts a FileExplorer object, and a directory path as arguments.
 
+    Args:
+    parent: An instance of the FileExplorer class that is used to access files and directories.
+    dir_path (str): The directory path that the button will be associated with.
+
+    Methods:
+    No additional methods attached to this class other than inherited QPushButton methods. However, the properties above can be accessed publicly by using the appropriate function calls within the PPushButton object.
+    It just uses os libe to remove directory or file.
+
+    """
+    def __init__(self, parent, item):
+        super().__init__(parent)
+        if item.is_dir:
+            self.clicked.connect(lambda: remove_dir(parent, item))  
+        else:
+            self.clicked.connect(lambda: remove_file(parent, item))
+
+def remove_dir(parent, item):
+    os.rmdir(item.path)
+    parent.clear_screen()
+    parent.initialize_page(msg='DT')
+
+def remove_file(parent, item):
+    os.remove(item.path)
+    parent.clear_screen()
+    parent.initialize_page(msg='DT')
 
 class FileExplorer(QMainWindow):
     
@@ -86,6 +112,7 @@ class FileExplorer(QMainWindow):
         # self.path_history = []
         self.setGeometry(500, 180, 1050, 800)
         self.setWindowTitle("MPXplorer")
+        # self.setStyleSheet('background-color: red')
         self.initialize_page()
         
 
@@ -105,21 +132,25 @@ class FileExplorer(QMainWindow):
         self.my_lbl.setFixedWidth(500)
         self.my_lbl.move(800, 750)
         if msg == 'T':
-            self.my_lbl.setText("Directory has been successfully created.")
-            self.my_lbl.setStyleSheet('color: green')
+            self.my_lbl.setText("Directory has been successfully created.        ")
+            self.my_lbl.setStyleSheet('color: green; background-color: white')
         elif msg == 'F' or msg == 'RF':
-            self.my_lbl.setText("Something went wrong, check the folder name.")
-            self.my_lbl.setStyleSheet('color: red')
+            self.my_lbl.setText("Something went wrong, check the folder name.    ")
+            self.my_lbl.setStyleSheet('color: red; background-color: white')
         elif msg == 'RT':
             self.my_lbl.setText("Directory or file has been successfully renamed.")
-            self.my_lbl.setStyleSheet('color: green')
+            self.my_lbl.setStyleSheet('color: green; background-color: white')
+        elif msg == 'DT':
+            self.my_lbl.setText("Directory or file has been successfully removed.")
+            self.my_lbl.setStyleSheet('color: green; background-color: white')
         self.lbls_ls.append(self.my_lbl)
         self.my_lbl.show()
         # ===================================================================================
 
         # This label shows how many items are in each page ==================================
         self.status_lbl = QLabel("{} items found.".format(len(get_data(default_dir))), self)
-        self.status_lbl.setFixedWidth(500)
+        self.status_lbl.setFixedWidth(100)
+        self.status_lbl.setStyleSheet("background-color: white")
         self.status_lbl.move(15, 750)
         self.lbls_ls.append(self.status_lbl)
         self.status_lbl.show()
@@ -152,6 +183,7 @@ class FileExplorer(QMainWindow):
 
         # Checkbox to check whether the new item is file or a directory
         self.is_directory_chckbx = QCheckBox('new directory', self)
+        self.is_directory_chckbx.setStyleSheet('background-color: white')
         self.is_directory_chckbx.setFixedWidth(300)
         self.is_directory_chckbx.move(950, 15)
         self.is_directory_chckbx.show()
@@ -195,10 +227,15 @@ class FileExplorer(QMainWindow):
             self.icons_lbl.append(lbl)
             form_layout.addRow(self.icons_lbl[cnt], self.icons_btn[cnt])    # Add a row to form_layout.
             
-            # button and textbox for rename action
+            # button and for rename action
             rename_button = RPushButton(self, item=itm)
             rename_button.setText("Rename")
             form_layout.addRow(rename_button)
+
+            # button for rmdir action
+            remove_button = DPushButton(self, item=itm)
+            remove_button.setText("Remove")
+            form_layout.addRow(remove_button)
 
             # add a horizontal line
             self.lines.append(QLabel('_______________________________________________________________________________________________________________________________________________'))    # Draws a vertical line.
