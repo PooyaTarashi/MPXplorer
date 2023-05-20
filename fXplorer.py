@@ -4,7 +4,6 @@ from time import sleep
 import sys
 import subprocess
 import os
-# from nff import start_dialogue
 
 class PPushButton(QPushButton):
     """
@@ -31,6 +30,50 @@ class PPushButton(QPushButton):
             self.clicked.connect(lambda: subprocess.Popen(item.path, shell=True))
 
 
+class RPushButton(QPushButton):
+    """
+    A customized PyQt QPushButton class that accepts a FileExplorer object, and a directory path as arguments.
+
+    Args:
+    parent: An instance of the FileExplorer class that is used to access files and directories.
+    dir_path (str): The directory path that the button will be associated with.
+
+    Methods:
+    No additional methods attached to this class other than inherited QPushButton methods. However, the properties above can be accessed publicly by using the appropriate function calls within the PPushButton object.
+    It just uses os libe to rename directory or file.
+
+    """
+    def __init__(self, parent, item):
+        super().__init__(parent)
+        if item.is_dir:
+            self.clicked.connect(lambda: rename_dir(parent, item, parent.rename_txtbox.text()))  
+        else:
+            self.clicked.connect(lambda: rename_file(parent, item, parent.rename_txtbox.text()))
+
+def rename_dir(parent, item, new_name):
+    try:
+        new_dir_path = os.path.join(os.path.dirname(item.path), new_name)
+        print(new_name)
+        os.rename(item.path, new_dir_path)
+        parent.initialize_page(msg='RT')
+    except:
+        parent.initialize_page(msg='RF')
+
+
+def rename_file(parent, item, new_name):
+    # try:
+        path = item.path
+        current_name = item.name
+        path2 = path[:-1 * len(item.name)]
+        print(path)
+        # os.chdir(path)
+
+        os.rename(path, path2 + new_name)
+        parent.initialize_page(msg='RT')
+    # except:
+        # parent.initialize_page(msg='RF')
+
+
 
 class FileExplorer(QMainWindow):
     
@@ -51,9 +94,8 @@ class FileExplorer(QMainWindow):
         self.icons_lbl = []
         self.lines = []
         self.lbls_ls = []
-        # self.path_history.append(default_dir)
         self.previous_dir = '\\'.join(default_dir.split('\\')[:len(default_dir.split('\\')) - 1])
-        print(self.previous_dir)
+        # print(self.previous_dir)
         self.clear_screen()
 
 
@@ -65,9 +107,12 @@ class FileExplorer(QMainWindow):
         if msg == 'T':
             self.my_lbl.setText("Directory has been successfully created.")
             self.my_lbl.setStyleSheet('color: green')
-        elif msg == 'F':
+        elif msg == 'F' or msg == 'RF':
             self.my_lbl.setText("Something went wrong, check the folder name.")
             self.my_lbl.setStyleSheet('color: red')
+        elif msg == 'RT':
+            self.my_lbl.setText("Directory or file has been successfully renamed.")
+            self.my_lbl.setStyleSheet('color: green')
         self.lbls_ls.append(self.my_lbl)
         self.my_lbl.show()
         # ===================================================================================
@@ -119,7 +164,22 @@ class FileExplorer(QMainWindow):
 
         # add vertical seperator
         self.vrtical_sep = QLabel('|', self)
+        self.lbls_ls.append(self.vrtical_sep)
         self.vrtical_sep.move(70, 15)
+
+        # new name textbox
+        self.rename_txtbox = QLineEdit(self)
+        self.rename_txtbox.setFixedWidth(300)
+        self.rename_txtbox.move(470, 760)
+        self.rename_txtbox.show()
+
+        # new name label
+        self.new_name_lbl = QLabel("Enter new name to rename:", self)
+        self.new_name_lbl.setFixedWidth(200)
+        self.new_name_lbl.move(300, 760)
+        self.lbls_ls.append(self.new_name_lbl)
+
+        
 
 
         cnt = 0
@@ -134,6 +194,13 @@ class FileExplorer(QMainWindow):
             self.icons_btn.append(btn)
             self.icons_lbl.append(lbl)
             form_layout.addRow(self.icons_lbl[cnt], self.icons_btn[cnt])    # Add a row to form_layout.
+            
+            # button and textbox for rename action
+            rename_button = RPushButton(self, item=itm)
+            rename_button.setText("Rename")
+            form_layout.addRow(rename_button)
+
+            # add a horizontal line
             self.lines.append(QLabel('_______________________________________________________________________________________________________________________________________________'))    # Draws a vertical line.
             form_layout.addRow(self.lines[cnt])
             cnt += 1
