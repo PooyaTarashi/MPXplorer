@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout, QLineEdit, QCheckBox, QMessageBox
 from collections import OrderedDict
 from time import sleep
 import sys
 import subprocess
 import os
+# from nff import start_dialogue
 
 class PPushButton(QPushButton):
     """
@@ -25,7 +26,7 @@ class PPushButton(QPushButton):
         super().__init__(parent)
         self.id = id
         if item.is_dir:
-            self.clicked.connect(lambda: parent.initialize_page(item.path))
+            self.clicked.connect(lambda: parent.open_folder(parent, item))
         else:
             self.clicked.connect(lambda: subprocess.Popen(item.path, shell=True))
 
@@ -39,19 +40,46 @@ class FileExplorer(QMainWindow):
         self.icons_btn = []
         self.icons_lbl = []
         self.lines = []
-        self.paths = []
-        self.setGeometry(500, 200, 1050, 700)
+        # self.path_history = []
+        self.setGeometry(500, 180, 1050, 800)
         self.setWindowTitle("MPXplorer")
         self.initialize_page()
         
 
-    def initialize_page(self, default_dir = "C:\\Users\\Dell\\Desktop\\tesktop"):
+    def initialize_page(self, default_dir = "C:\\Users\\Dell\\Desktop\\tesktop", msg=""):
         self.icons_btn = []
         self.icons_lbl = []
         self.lines = []
-        self.paths = []
+        self.lbls_ls = []
+        # self.path_history.append(default_dir)
+        self.previous_dir = '\\'.join(default_dir.split('\\')[:len(default_dir.split('\\')) - 1])
+        print(self.previous_dir)
         self.clear_screen()
-        
+
+
+        # This label shows messages ==========================================================
+        self.my_lbl = QLabel(self)
+        self.my_lbl.setText('')
+        self.my_lbl.setFixedWidth(500)
+        self.my_lbl.move(800, 750)
+        if msg == 'T':
+            self.my_lbl.setText("Directory has been successfully created.")
+            self.my_lbl.setStyleSheet('color: green')
+        elif msg == 'F':
+            self.my_lbl.setText("Something went wrong, check the folder name.")
+            self.my_lbl.setStyleSheet('color: red')
+        self.lbls_ls.append(self.my_lbl)
+        self.my_lbl.show()
+        # ===================================================================================
+
+        # This label shows how many items are in each page ==================================
+        self.status_lbl = QLabel("{} items found.".format(len(get_data(default_dir))), self)
+        self.status_lbl.setFixedWidth(500)
+        self.status_lbl.move(15, 750)
+        self.lbls_ls.append(self.status_lbl)
+        self.status_lbl.show()
+        # ===================================================================================
+
         wid = QWidget(self)
         self.setCentralWidget(wid)
 
@@ -59,9 +87,40 @@ class FileExplorer(QMainWindow):
         group_box = QGroupBox(default_dir)
 
 
-        exit_btn = QPushButton("Exit", self)    # Add exit button.
-        exit_btn.clicked.connect(sys.exit)
-        form_layout.addRow(exit_btn)
+
+        self.new_btn = QPushButton("+", self)    # Add new file or folder button.
+        self.new_btn.setFixedWidth(100)
+        self.new_btn.move(840, 15)
+        self.new_btn.clicked.connect(lambda: self.new_file_or_folder(default_dir))
+        self.new_btn.show()
+        
+        self.file_name_txt = QLineEdit(self)    # Textbox to get file name
+        self.file_name_txt.setFixedWidth(600)
+        self.file_name_txt.move(235, 15)
+        self.file_name_txt.show()
+
+
+        # Label to get new file or folder name
+        inp_lbl = QLabel("Input file or folder name:", self)
+        inp_lbl.setFixedWidth(200)
+        inp_lbl.move(85, 15)
+
+        # Checkbox to check whether the new item is file or a directory
+        self.is_directory_chckbx = QCheckBox('new directory', self)
+        self.is_directory_chckbx.setFixedWidth(300)
+        self.is_directory_chckbx.move(950, 15)
+        self.is_directory_chckbx.show()
+
+        # add back button to reach previous directory
+        self.back_button = QPushButton("<", self)
+        self.back_button.clicked.connect(lambda: self.initialize_page(self.previous_dir))
+        self.back_button.setFixedWidth(50)
+        self.back_button.move(10, 15)
+
+        # add vertical seperator
+        self.vrtical_sep = QLabel('|', self)
+        self.vrtical_sep.move(70, 15)
+
 
         cnt = 0
         for itm in get_data(default_dir).values():    # iterates values of Item objects in the specified directory and makes button and label for each object.
@@ -84,8 +143,7 @@ class FileExplorer(QMainWindow):
         scroll = QScrollArea()
         scroll.setWidget(group_box)
         scroll.setWidgetResizable(True)
-        scroll.setFixedHeight(700)
-        scroll.setFixedWidth(1060)
+        scroll.setFixedSize(1060, 700)
 
         layout = QVBoxLayout()
         layout.addWidget(scroll)
@@ -100,6 +158,36 @@ class FileExplorer(QMainWindow):
             itm.clear()
         for itm in self.lines:
             itm.clear()
+        # self.my_lbl.clear()
+        for itm in self.lbls_ls:
+            itm.clear()
+
+    def open_folder(self, parent, item):
+        for itm in parent.lbls_ls:
+            itm.clear()
+        parent.initialize_page(item.path)
+
+    def new_file_or_folder(self, directory_address):
+        state = 'T'
+        if self.is_directory_chckbx.isChecked():
+            try:
+                os.mkdir(directory_address + '\\' + self.file_name_txt.text())
+            except:
+                state = 'F'
+                
+        else:
+            try:
+                f = open(directory_address + '\\' + self.file_name_txt.text(), 'w')
+                f.close()
+            except:
+                state = 'F'
+
+            # subprocess.Popen('cd ' + directory_address + '\n' + 'type nul > ' + self.file_name_txt.text(), shell=True)
+
+        self.is_directory_chckbx.deleteLater()
+        self.status_lbl.clear()
+        self.my_lbl.clear()
+        self.initialize_page(msg=state)
 
 
 
