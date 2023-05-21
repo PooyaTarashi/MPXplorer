@@ -336,7 +336,7 @@ class FileExplorer(QMainWindow):
         self.is_directory_chckbx.deleteLater()
         self.status_lbl.clear()
         self.my_lbl.clear()
-        self.initialize_page(msg=state)
+        self.initialize_page(default_dir=directory_address, msg=state)
 
 
 
