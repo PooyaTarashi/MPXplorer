@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout, QLineEdit, QCheckBox, QMessageBox
+from PyQt5.QtGui import QPixmap
 from collections import OrderedDict
 from time import sleep
 import sys
@@ -102,7 +103,7 @@ def remove_file(parent, item):
     parent.initialize_page(msg='DT')
 
 class FileExplorer(QMainWindow):
-    
+
     def __init__(self):
         super().__init__()
         print("Welcome to MPXplorer")
@@ -116,7 +117,7 @@ class FileExplorer(QMainWindow):
         self.initialize_page()
         
 
-    def initialize_page(self, default_dir = "C:\\Users\\Dell\\Desktop\\tesktop", msg=""):
+    def initialize_page(self, default_dir = "C:\\Users\\Dell\\Desktop\\tesktop", msg="", hide_format=False):
         self.icons_btn = []
         self.icons_lbl = []
         self.lines = []
@@ -193,6 +194,7 @@ class FileExplorer(QMainWindow):
         self.back_button.clicked.connect(lambda: self.initialize_page(self.previous_dir))
         self.back_button.setFixedWidth(50)
         self.back_button.move(10, 15)
+        self.back_button.show()
 
         # add vertical seperator
         self.vrtical_sep = QLabel('|', self)
@@ -210,17 +212,60 @@ class FileExplorer(QMainWindow):
         self.new_name_lbl.setFixedWidth(200)
         self.new_name_lbl.move(300, 760)
         self.lbls_ls.append(self.new_name_lbl)
+        self.new_name_lbl.show()
 
-        
+        # add hide format button
+        if hide_format:
+            self.hide_format_button = QPushButton("Show file extention", self)
+            self.hide_format_button.setFixedWidth(120)
+            self.hide_format_button.move(160, 760)
+            self.hide_format_button.clicked.connect(lambda: self.initialize_page(hide_format=False))
+            self.hide_format_button.show()
+        else:
+            self.hide_format_button = QPushButton("Hide file extention", self)
+            self.hide_format_button.setFixedWidth(120)
+            self.hide_format_button.move(160, 760)
+            self.hide_format_button.clicked.connect(lambda: self.initialize_page(hide_format=True))
+            self.hide_format_button.show()
 
 
         cnt = 0
         for itm in get_data(default_dir).values():    # iterates values of Item objects in the specified directory and makes button and label for each object.
             btn = PPushButton(self, id=cnt, item=itm)    # Make object of PPushButton customized class.
-            lbl = QLabel(itm.name, self)
-            btn.setText(itm.name)
+            if itm.is_dir == False and hide_format:
+                lbl = QLabel(itm.name[:itm.name.rfind('.')], self)
+            else:
+                if itm.name[-3:] == '.py' and itm.is_dir == False:
+                    lbl = QLabel(self)
+                    pixmap = QPixmap('pycon.png')
+                    lbl.setPixmap(pixmap)
+                elif itm.name[-4:] == '.psd' and itm.is_dir == False:
+                    lbl = QLabel(self)
+                    pixmap = QPixmap('PhotoshopIcon.png')
+                    lbl.setPixmap(pixmap)
+                elif itm.name[-4:] == '.txt' and itm.is_dir == False:
+                    lbl = QLabel(self)
+                    pixmap = QPixmap('txtIcon.png')
+                    lbl.setPixmap(pixmap)
+                elif itm.name[-5:] == '.docx' and itm.is_dir == False:
+                    lbl = QLabel(self)
+                    pixmap = QPixmap('docxIcon.png')
+                    lbl.setPixmap(pixmap)
+                else:
+                    lbl = QLabel(self)
+                    pixmap = QPixmap('folderIcon.png')
+                    lbl.setPixmap(pixmap)
+            if itm.is_dir == False and hide_format:
+                btn.setText(itm.name[:itm.name.rfind('.')])
+            else:
+                btn.setText(itm.name)
+            
+            if itm.is_dir:
+                
+                btn.setStyleSheet('background-color: rgb(255, 202, 40)')
+
             btn.setFixedSize(800, 70)
-            lbl.setFixedSize(200, 20)
+            lbl.setFixedSize(200, 50)
             
             # Stores button and label data:
             self.icons_btn.append(btn)
