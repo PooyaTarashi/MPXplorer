@@ -191,10 +191,16 @@ class FileExplorer(QMainWindow):
 
         # add back button to reach previous directory
         self.back_button = QPushButton("<", self)
-        self.back_button.clicked.connect(lambda: self.initialize_page(self.previous_dir))
+        self.back_button.clicked.connect(lambda: go_back(self, self.previous_dir))
         self.back_button.setFixedWidth(50)
         self.back_button.move(10, 15)
         self.back_button.show()
+
+        def go_back(self, dir):
+            try:
+                self.initialize_page(dir)
+            except:
+                pass
 
         # add vertical seperator
         self.vrtical_sep = QLabel('|', self)
