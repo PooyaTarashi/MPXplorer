@@ -1,9 +1,12 @@
+import typing
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout, QLineEdit, QCheckBox, QMessageBox
 from PyQt5.QtGui import QPixmap
 from collections import OrderedDict
 from time import sleep
 import sys
 import subprocess
+from mt_file_search_re_difflib import search
 import os
 
 
@@ -160,26 +163,32 @@ class FileExplorer(QMainWindow):
         wid = QWidget(self)
         self.setCentralWidget(wid)
 
-        form_layout = QFormLayout()
-        group_box = QGroupBox(default_dir)
+        self.form_layout = QFormLayout()
+        self.group_box = QGroupBox(default_dir)
 
 
 
         self.new_btn = QPushButton("+", self)    # Add new file or folder button.
-        self.new_btn.setFixedWidth(100)
+        self.new_btn.setFixedWidth(75)
         self.new_btn.move(840, 15)
         self.new_btn.clicked.connect(lambda: self.new_file_or_folder(default_dir))
         self.new_btn.show()
+
+        self.srch_btn = QPushButton("🔍", self)    # Search for a file or folder button.
+        self.srch_btn.setFixedWidth(75)
+        self.srch_btn.move(763, 15)
+        self.srch_btn.clicked.connect(lambda: self.search_for(default_dir, form_layout=self.form_layout))
+        self.srch_btn.show()
         
         self.file_name_txt = QLineEdit(self)    # Textbox to get file name
-        self.file_name_txt.setFixedWidth(600)
-        self.file_name_txt.move(235, 15)
+        self.file_name_txt.setFixedWidth(400)
+        self.file_name_txt.move(360, 15)
         self.file_name_txt.show()
 
 
         # Label to get new file or folder name
-        inp_lbl = QLabel("Input file or folder name:", self)
-        inp_lbl.setFixedWidth(200)
+        inp_lbl = QLabel("Input file or folder name to make or search for:", self)
+        inp_lbl.setFixedWidth(300)
         inp_lbl.move(85, 15)
 
         # Checkbox to check whether the new item is file or a directory
@@ -235,8 +244,41 @@ class FileExplorer(QMainWindow):
             self.hide_format_button.show()
 
 
+        self.make_item_layout(default_dir, hide_format, self.form_layout)
+            
+
+        self.group_box.setLayout(self.form_layout)
+        scroll = QScrollArea()
+        scroll.setWidget(self.group_box)
+        scroll.setWidgetResizable(True)
+        scroll.setFixedSize(1060, 700)
+
+        layout = QVBoxLayout()
+        layout.addWidget(scroll)
+
+        wid.setLayout(layout)
+        
+        self.show()
+
+
+    def make_item_layout(self, default_dir, hide_format, form_layout, itrbl='default'):
+        # self.form_layout = QFormLayout()
+        # self.group_box = QGroupBox(default_dir)
+        
         cnt = 0
-        for itm in get_data(default_dir).values():    # iterates values of Item objects in the specified directory and makes button and label for each object.
+        if itrbl == 'default':
+            itrbl = get_data(default_dir).values()
+        else:            
+            tmp_list = []
+            for itm in itrbl:
+                print(itm)
+                tmp_list.append(Item(os.path.basename(itm), itm, os.path.isdir(itm)))
+
+            itrbl = tmp_list
+
+                
+
+        for itm in itrbl:    # iterates values of Item objects in the specified directory and makes button and label for each object.
             btn = PPushButton(self, id=cnt, item=itm)    # Make object of PPushButton customized class.
             if itm.is_dir == False and hide_format:
                 lbl = QLabel(itm.name[:itm.name.rfind('.')], self)
@@ -257,10 +299,14 @@ class FileExplorer(QMainWindow):
                     lbl = QLabel(self)
                     pixmap = QPixmap('docxIcon.png')
                     lbl.setPixmap(pixmap)
-                else:
-                    lbl = QLabel(self)
+                elif itm.is_dir:
+                    lbl = QLabel(itm.name, self)
                     pixmap = QPixmap('folderIcon.png')
                     lbl.setPixmap(pixmap)
+                else:
+                    lbl = QLabel(itm.name, self)
+                    # pixmap = QPixmap('folderIcon.png')
+                    # lbl.setPixmap(pixmap)
             if itm.is_dir == False and hide_format:
                 btn.setText(itm.name[:itm.name.rfind('.')])
             else:
@@ -276,8 +322,9 @@ class FileExplorer(QMainWindow):
             # Stores button and label data:
             self.icons_btn.append(btn)
             self.icons_lbl.append(lbl)
-            form_layout.addRow(self.icons_lbl[cnt], self.icons_btn[cnt])    # Add a row to form_layout.
-            
+            # form_layout.addRow(self.icons_lbl[cnt], self.icons_btn[cnt])    # Add a row to form_layout.
+            form_layout.addRow(lbl, btn)
+
             # button and for rename action
             rename_button = RPushButton(self, item=itm)
             rename_button.setText("Rename")
@@ -292,21 +339,6 @@ class FileExplorer(QMainWindow):
             self.lines.append(QLabel('_______________________________________________________________________________________________________________________________________________'))    # Draws a vertical line.
             form_layout.addRow(self.lines[cnt])
             cnt += 1
-            
-
-        group_box.setLayout(form_layout)
-        scroll = QScrollArea()
-        scroll.setWidget(group_box)
-        scroll.setWidgetResizable(True)
-        scroll.setFixedSize(1060, 700)
-
-        layout = QVBoxLayout()
-        layout.addWidget(scroll)
-
-        wid.setLayout(layout)
-        
-        self.show()
-
 
     def clear_screen(self):
         for itm in self.icons_lbl:
@@ -344,7 +376,19 @@ class FileExplorer(QMainWindow):
         self.my_lbl.clear()
         self.initialize_page(default_dir=directory_address, msg=state)
 
+    def search_for(self, default_dir, form_layout):
+        hide_format = False
+        lnee = QLabel('_________________________________________________________search results:____________________________________________________________')
+        self.lines.append(lnee)    # Draws a vertical line.
+        form_layout.addRow(lnee)
+        self.done_lbl = QLabel("The search results will be added to the end of this layout.", self)
+        self.done_lbl.setStyleSheet('background-color: white; color:green')
+        self.done_lbl.move(750, 750)
+        self.done_lbl.setFixedWidth(600)
+        self.lbls_ls.append(self.done_lbl)
+        self.done_lbl.show()
 
+        self.make_item_layout(default_dir, hide_format, form_layout, itrbl=search(self.file_name_txt.text(), default_dir))
 
 class Item():
     def __init__(self, name, path, is_dir):
