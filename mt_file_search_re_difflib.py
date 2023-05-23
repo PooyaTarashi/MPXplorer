@@ -3,6 +3,7 @@ import os
 from os.path import join, isdir
 import re
 from difflib import get_close_matches as gcm
+from mp_sort import mp_sort
 
 # this variable will contain list of paths containing our file.
 # we use multiple threads to update this variable
@@ -38,14 +39,19 @@ def file_search(root: str, filename: str) -> None:
         thread.join()
 
 
-def search(key, path = 'C:\\Users\\Dell\\Desktop\\tesktop'):
+def search(key, path = 'C:\\Users\\Dell\\Desktop\\tesktop', sort_type = 'by_alpha'):
     t = threading.Thread(target=file_search, args=(path, key))
     t.start()
     t.join()
     # for m in matches:
         # print(m)
-    return matches
+    # return merge_sort_threaded(matches)
+    print(matches)
+    print('***********************************')
+    print(mp_sort(matches))
+    # return matches
+    return mp_sort(matches)
 
 
 if __name__ == '__main__':
-    search()
+    search('main')

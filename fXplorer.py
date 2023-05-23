@@ -1,6 +1,6 @@
 import typing
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout, QLineEdit, QCheckBox, QMessageBox
+from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout, QLineEdit, QCheckBox, QMessageBox, QComboBox
 from PyQt5.QtGui import QPixmap
 from collections import OrderedDict
 from time import sleep
@@ -125,6 +125,7 @@ class FileExplorer(QMainWindow):
         self.icons_lbl = []
         self.lines = []
         self.lbls_ls = []
+        self.sort_state = 'by_alpha'
         self.previous_dir = '\\'.join(default_dir.split('\\')[:len(default_dir.split('\\')) - 1])
         # print(self.previous_dir)
         self.clear_screen()
@@ -177,14 +178,20 @@ class FileExplorer(QMainWindow):
         self.srch_btn = QPushButton("🔍", self)    # Search for a file or folder button.
         self.srch_btn.setFixedWidth(75)
         self.srch_btn.move(763, 15)
-        self.srch_btn.clicked.connect(lambda: self.search_for(default_dir, form_layout=self.form_layout))
+        self.srch_btn.clicked.connect(lambda: self.search_for(default_dir, form_layout=self.form_layout, sort_type=self.sort_combo.currentText()))
         self.srch_btn.show()
         
         self.file_name_txt = QLineEdit(self)    # Textbox to get file name
-        self.file_name_txt.setFixedWidth(400)
+        self.file_name_txt.setFixedWidth(300)
         self.file_name_txt.move(360, 15)
         self.file_name_txt.show()
 
+        # add combobox to get sort method
+        self.sort_combo = QComboBox(self)
+        self.sort_combo.setFixedWidth(90)
+        self.sort_combo.move(668, 15)
+        self.sort_combo.addItems(['by_alpha', 'by_size', 'by_date'])
+        self.sort_combo.show()
 
         # Label to get new file or folder name
         inp_lbl = QLabel("Input file or folder name to make or search for:", self)
@@ -376,7 +383,7 @@ class FileExplorer(QMainWindow):
         self.my_lbl.clear()
         self.initialize_page(default_dir=directory_address, msg=state)
 
-    def search_for(self, default_dir, form_layout):
+    def search_for(self, default_dir, form_layout, sort_type):
         hide_format = False
         lnee = QLabel('_________________________________________________________search results:____________________________________________________________')
         self.lines.append(lnee)    # Draws a vertical line.
@@ -388,7 +395,7 @@ class FileExplorer(QMainWindow):
         self.lbls_ls.append(self.done_lbl)
         self.done_lbl.show()
 
-        self.make_item_layout(default_dir, hide_format, form_layout, itrbl=search(self.file_name_txt.text(), default_dir))
+        self.make_item_layout(default_dir, hide_format, form_layout, itrbl=search(self.file_name_txt.text(), default_dir, sort_type))
 
 class Item():
     def __init__(self, name, path, is_dir):
