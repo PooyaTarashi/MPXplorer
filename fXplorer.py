@@ -1,14 +1,14 @@
-import typing
+import shutil, threading
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QPushButton, QLabel, QFormLayout, QGroupBox, QScrollArea, QVBoxLayout, QLineEdit, QCheckBox, QMessageBox, QComboBox
 from PyQt5.QtGui import QPixmap
 from collections import OrderedDict
-from time import sleep
+# from time import sleep
 import sys
 import subprocess
 from mt_file_search_re_difflib import search
 import os
-
+from mpaste import mpcopy, mpmove
 
 class PPushButton(QPushButton):
     """
@@ -54,6 +54,43 @@ class RPushButton(QPushButton):
             self.clicked.connect(lambda: rename_dir(parent, item, parent.rename_txtbox.text()))  
         else:
             self.clicked.connect(lambda: rename_file(parent, item, parent.rename_txtbox.text()))
+
+
+class CPushButton(QPushButton):
+    """
+    A customized PyQt QPushButton class that accepts a FileExplorer object, and a directory path as arguments.
+
+    Args:
+    parent: An instance of the FileExplorer class that is used to access files and directories.
+    dir_path (str): The directory path that the button will be associated with.
+
+    Methods:
+    No additional methods attached to this class other than inherited QPushButton methods. However, the properties above can be accessed publicly by using the appropriate function calls within the PPushButton object.
+    It just uses os libe to rename directory or file.
+
+    """
+    def __init__(self, parent, item_dir):
+        super().__init__(parent)
+        self.clicked.connect(lambda: parent.clipboard.append(item_dir))
+
+
+class MPushButton(QPushButton):
+    """
+    A customized PyQt QPushButton class that accepts a FileExplorer object, and a directory path as arguments.
+
+    Args:
+    parent: An instance of the FileExplorer class that is used to access files and directories.
+    dir_path (str): The directory path that the button will be associated with.
+
+    Methods:
+    No additional methods attached to this class other than inherited QPushButton methods. However, the properties above can be accessed publicly by using the appropriate function calls within the PPushButton object.
+    It just uses os libe to rename directory or file.
+
+    """
+    def __init__(self, parent, item_dir):
+        super().__init__(parent)
+        self.clicked.connect(lambda: parent.move_clipboard.append(item_dir))
+
 
 def rename_dir(parent, item, new_name):
     try:
@@ -113,6 +150,8 @@ class FileExplorer(QMainWindow):
         self.icons_btn = []
         self.icons_lbl = []
         self.lines = []
+        self.clipboard = []
+        self.move_clipboard = []
         # self.path_history = []
         self.setGeometry(500, 180, 1050, 800)
         self.setWindowTitle("MPXplorer")
@@ -225,7 +264,7 @@ class FileExplorer(QMainWindow):
 
         # new name textbox
         self.rename_txtbox = QLineEdit(self)
-        self.rename_txtbox.setFixedWidth(300)
+        self.rename_txtbox.setFixedWidth(200)
         self.rename_txtbox.move(470, 760)
         self.rename_txtbox.show()
 
@@ -235,6 +274,13 @@ class FileExplorer(QMainWindow):
         self.new_name_lbl.move(300, 760)
         self.lbls_ls.append(self.new_name_lbl)
         self.new_name_lbl.show()
+
+        # paste button
+        self.paste_btn = QPushButton('Paste', self)
+        self.paste_btn.setFixedWidth(55)
+        self.paste_btn.move(675, 760)
+        self.paste_btn.clicked.connect(lambda: self.copy_generate(self, default_dir))
+        self.paste_btn.show()
 
         # add hide format button
         if hide_format:
@@ -342,10 +388,26 @@ class FileExplorer(QMainWindow):
             remove_button.setText("Remove")
             form_layout.addRow(remove_button)
 
+            # button for copy action
+            copy_button = CPushButton(self, itm.path)
+            copy_button.setText("copy")
+            form_layout.addRow(copy_button)
+
+            move_btn = MPushButton(self, itm.path)
+            move_btn.setText("move")
+            form_layout.addRow(move_btn)
+
             # add a horizontal line
             self.lines.append(QLabel('_______________________________________________________________________________________________________________________________________________'))    # Draws a vertical line.
             form_layout.addRow(self.lines[cnt])
             cnt += 1
+
+    def copy_generate(self, parent, dst_dir):
+        mpcopy(dst_dir, self.clipboard)
+        mpmove(dst_dir, self.move_clipboard)
+        parent.initialize_page(dst_dir)
+
+
 
     def clear_screen(self):
         for itm in self.icons_lbl:
